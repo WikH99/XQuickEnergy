@@ -20,8 +20,6 @@ import pansong291.xposed.quickenergy.*;
 import pansong291.xposed.quickenergy.ui.MainActivity;
 import pansong291.xposed.quickenergy.util.*;
 
-import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
 
 public class XposedHook implements IXposedHookLoadPackage {
@@ -92,7 +90,8 @@ public class XposedHook implements IXposedHookLoadPackage {
                         Statistics.resetToday();
                         AntForest.checkEnergyRanking(XposedHook.classLoader, times);
 
-                        if (TimeUtil.getTimeStr().compareTo("0700") < 0 || TimeUtil.getTimeStr().compareTo("0730") > 0) {
+                        if (TimeUtil.getTimeStr().compareTo("0700") < 0
+                                || TimeUtil.getTimeStr().compareTo("0730") > 0) {
                             AntCooperate.start();
                             AntFarm.start();
                             Reserve.start();
@@ -102,10 +101,12 @@ public class XposedHook implements IXposedHookLoadPackage {
                             AntSports.start(XposedHook.classLoader, times);
                             AntMember.receivePoint();
                             AntOcean.start();
+                            AntOrchard.start();
                         }
                         times = (times + 1) % (3600_000 / Config.checkInterval());
                     }
                     if (Config.collectEnergy() || Config.enableFarm()) {
+                        AntForestNotification.setNextScanTime(System.currentTimeMillis() + Config.checkInterval());
                         handler.postDelayed(this, Config.checkInterval());
                     } else {
                         AntForestNotification.stop(service, false);
@@ -229,14 +230,14 @@ public class XposedHook implements IXposedHookLoadPackage {
 
     public static void restartHook(Context context, boolean force) {
         try {
-            Intent intent = new Intent();
+            Intent intent;
             if (force || Config.stayAwakeTarget() == StayAwakeTarget.ACTIVITY) {
+                intent = new Intent(Intent.ACTION_VIEW);
                 intent.setClassName(ClassMember.PACKAGE_NAME, ClassMember.CURRENT_USING_ACTIVITY);
-                if (force) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                }
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);
             } else {
+                intent = new Intent();
                 intent.setClassName(ClassMember.PACKAGE_NAME, ClassMember.CURRENT_USING_SERVICE);
                 context.startService(intent);
             }

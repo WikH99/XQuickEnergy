@@ -5,6 +5,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import pansong291.xposed.quickenergy.AntFarm.TaskStatus;
+import pansong291.xposed.quickenergy.data.RuntimeInfo;
 import pansong291.xposed.quickenergy.hook.AntForestRpcCall;
 import pansong291.xposed.quickenergy.hook.EcoLifeRpcCall;
 import pansong291.xposed.quickenergy.hook.FriendManager;
@@ -108,7 +109,7 @@ public class AntForest {
      * @param times  the times
      */
     public static void checkEnergyRanking(ClassLoader loader, int times) {
-        if (Config.forestPauseTime() > System.currentTimeMillis()) {
+        if (RuntimeInfo.getInstance().getLong(RuntimeInfo.RuntimeInfoKey.ForestPauseTime) > System.currentTimeMillis()) {
             Log.recordLog("异常等待中，暂不执行检测！", "");
             return;
         }
@@ -160,6 +161,9 @@ public class AntForest {
                         if (Config.userPatrol()) {
                             UserPatrol();
                         }
+                        if (!Config.whoYouWantGiveTo().isEmpty() && !FriendIdMap.currentUid.equals(Config.whoYouWantGiveTo().get(0))) {
+                            giveProp(Config.whoYouWantGiveTo().get(0));
+                        }
                         for (int i = 0; i < Config.getWaterFriendList().size(); i++) {
                             String uid = Config.getWaterFriendList().get(i);
                             if (selfId.equals(uid))
@@ -186,7 +190,7 @@ public class AntForest {
     }
 
     private static void fillUserRobFlag(List<String> idList) {
-        if (Config.forestPauseTime() > System.currentTimeMillis()) {
+        if (RuntimeInfo.getInstance().getLong(RuntimeInfo.RuntimeInfoKey.ForestPauseTime) > System.currentTimeMillis()) {
             return;
         }
         try {
@@ -469,7 +473,7 @@ public class AntForest {
     }
 
     private static void canCollectEnergy(String userId, boolean laterCollect) {
-        if (Config.forestPauseTime() > System.currentTimeMillis()) {
+        if (RuntimeInfo.getInstance().getLong(RuntimeInfo.RuntimeInfoKey.ForestPauseTime) > System.currentTimeMillis()) {
             Log.recordLog("异常等待中，暂不执行检测！", "");
             return;
         }
@@ -558,7 +562,7 @@ public class AntForest {
     }
 
     private static int collectEnergy(String userId, long bubbleId, String bizNo, String extra) {
-        if (Config.forestPauseTime() > System.currentTimeMillis()) {
+        if (RuntimeInfo.getInstance().getLong(RuntimeInfo.RuntimeInfoKey.ForestPauseTime) > System.currentTimeMillis()) {
             Log.recordLog("异常等待中，暂不收取能量！", "");
             return 0;
         }
@@ -581,7 +585,7 @@ public class AntForest {
                     while (System.currentTimeMillis() - lastCollectTime < Config.collectInterval()) {
                         Thread.sleep(System.currentTimeMillis() - lastCollectTime);
                     }
-                    if (Config.forestPauseTime() > System.currentTimeMillis()) {
+                    if (RuntimeInfo.getInstance().getLong(RuntimeInfo.RuntimeInfoKey.ForestPauseTime) > System.currentTimeMillis()) {
                         Log.recordLog("异常等待中，暂不收取能量！", "");
                         return 0;
                     }
@@ -797,7 +801,7 @@ public class AntForest {
                                 JSONObject joFinishTask = new JSONObject(
                                         AntForestRpcCall.finishTask(sceneCode, taskType));
                                 if (joFinishTask.getBoolean("success")) {
-                                    Log.forest("完成任务🧾️[" + taskTitle + "]");
+                                    Log.forest("森林任务🧾️[" + taskTitle + "]");
                                     doubleCheck = true;
                                 } else {
                                     Log.recordLog("完成任务失败，" + taskTitle);
@@ -1010,7 +1014,7 @@ public class AntForest {
             JSONObject jo = new JSONObject(AntForestRpcCall.queryPropList(true));
             if ("SUCCESS".equals(jo.getString("resultCode"))) {
                 JSONArray forestPropVOList = jo.optJSONArray("forestPropVOList");
-                if (forestPropVOList.length() > 0) {
+                if (forestPropVOList != null && forestPropVOList.length() > 0) {
                     jo = forestPropVOList.getJSONObject(0);
                     String giveConfigId = jo.getJSONObject("giveConfigVO").getString("giveConfigId");
                     int holdsNum = jo.optInt("holdsNum", 0);
@@ -1022,6 +1026,7 @@ public class AntForest {
                     } else {
                         Log.recordLog(jo.getString("resultDesc"), jo.toString());
                     }
+                    Thread.sleep(200);
                     if (holdsNum > 1 || forestPropVOList.length() > 1) {
                         giveProp(targetUserId);
                     }
